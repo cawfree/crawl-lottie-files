@@ -96,7 +96,6 @@ The response object is a JSON array whose elements are the content-agnostic merg
 Since any changes on the frontend can disrupt data collection, this implementation serves to be the most resistant to change; however future frontend changes have the potential to interfere with any of the following keys:
 ```
 ["href", "title", "class", "style", "text", "src", "alt"]
-
 ```
 > **NOTE:** `crawl-lottie-files` is heavily dependent on a known structure of the LottieFiles DOM. Whenever the frontend changes, this tool will need to be updated.
 
@@ -115,4 +114,4 @@ You **must**:
 `crawl-lottie-files` was made possible by [`axios`](https://github.com/axios/axios) and [`node-html-parser`](https://github.com/taoqf/node-html-parser). An extra special thank you to the [Lottie Animations Team](https://airbnb.io/lottie/) at [AirBnB](https://www.airbnb.co.uk) for their revolutionary and open approach towards enriching user experience.
 
 ## ⛱ License
-MIT
+[MIT](/LICENSE.md)
