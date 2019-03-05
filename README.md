@@ -111,7 +111,7 @@ You **must**:
   - Do your best to promote Lottie as much as you can!
 
 ## 🎁 Credits
-`crawl-lottie-files` was made possible by [`axios`](https://github.com/axios/axios) and [`node-html-parser`](https://github.com/taoqf/node-html-parser). An extra special thank you to the [Lottie Animations Team](https://airbnb.io/lottie/) at [AirBnB](https://www.airbnb.co.uk) for their revolutionary and open approach towards enriching user experience.
+`crawl-lottie-files` was made possible by [`axios`](https://github.com/axios/axios) and [`node-html-parser`](https://github.com/taoqf/node-html-parser). An extra special thank you to the [Lottie Animations Team](https://airbnb.io/lottie/) at [Airbnb](https://www.airbnb.co.uk) for their revolutionary and open approach towards enriching user experience.
 
 ## ⛱ License
 [MIT](/LICENSE.md)

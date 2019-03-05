@@ -182,6 +182,8 @@ class Crawler {
               headers,
               data,
             );
+            this.__setCookies(cookies);
+            this.__setToken(token);
             return ({
               headers,
               data,
