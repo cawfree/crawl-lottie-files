@@ -1,80 +1,91 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
+const { parse } = require('node-html-parser');
 
-const normalize = require('./normalize');
 const {
   lottieFilesUrl,
   queryModes,
 } = require('./config.json');
 
-const parseAnchors = ($, anchors) => {
-  return anchors
-    .reduce(
-      (obj, anchor, index) => {
-        if (index === 0) {
-          return ({
-            ...obj,
-            ...anchor.attribs,
-            ...normalize(
-                $(
-                  'lottie',
-                  anchor,
-                )
-              )[0]
-                .attribs,
-          });
-        } else if (index === 1) {
-          const authorImage = anchor.children[0].attribs.src;
-          return ({
-            ...obj,
-            authorImage,
-          });
-        } else if (index === 2) {
-         const author = anchor
-           .children[0]
-             .children[0]
-             .data;
-         return ({
-            ...obj,
-            author,
-          });
-        }
-        return obj;
-      },
-      {},
-    );
-};
-
-const toFriendlyResult = ({ title, speed, bg, href, path, author, authorImage }) => ({
-  title,
-  url: href,
-  anim: {
-    uri: path,
-    speed,
-    backgroundColor: bg,
-  },
-  author: {
-    name: author,
-    image: authorImage,
-  },
-});
-
-const parseBoxes = ($, boxes) => {
-  return boxes.reduce(
-    (arr, box) => {
+function recursiveCollect(
+  parentNode,
+  prune,
+  depthNodes = [],
+) {
+  return (parentNode.childNodes || []).reduce(
+    (arr, child) => {
+      const depth = ([
+        ...depthNodes,
+        parentNode,
+      ]);
       return ([
         ...arr,
-        parseAnchors(
-          $,
-          normalize(
-            $('a', box),
-          ),
+        ...recursiveCollect(
+          child,
+          prune,
+          depth,
         ),
       ]);
     },
-    [],
-  )
-  .map(toFriendlyResult);
+    // XXX: Here we're uninterested in nodes without tag names.
+    (!prune(depthNodes, parentNode)) ? [parentNode] : [],
+  );
+};
+
+const scrape = ($) => {
+  return $.querySelectorAll('lottie')
+    .reduce(
+      (arr, lottie) => {
+        const result = recursiveCollect(
+          // TODO: This could likely become a function to decide to which
+          //       level we'd like to start the search.
+          lottie
+            .parentNode
+              .parentNode,
+          // XXX: Use a pruning function to avoid accumulating
+          //      children we're not interested in.
+          (depth, child) => {
+            const {
+              tagName,
+            } = child;
+            // We're not interested in nodes without tagNames.
+            return !tagName || !(tagName === 'a' || tagName === 'img');
+          },
+        )
+          .reduce(
+            (obj, node) => {
+              const {
+                tagName,
+                attributes,
+              } = node;
+              if (tagName === 'img') {
+                return ({
+                  ...obj,
+                  ...attributes,
+                });
+              } else if (tagName === 'a') {
+                if (attributes.href && attributes.href.length > 0 && attributes.href !== '""') {
+                  const { text } = node;
+                  return ({
+                    ...obj,
+                    ...attributes,
+                    text,
+                  });
+                }
+              }
+              return obj;
+            },
+            {},
+          );
+        return ([
+          ...arr,
+          {
+            ...result,
+            ...lottie.attributes,
+          },
+        ]);
+      },
+      [],
+    );
 };
 
 class Crawler {
@@ -94,16 +105,15 @@ class Crawler {
       .then(() => this);
   }
   __extractSession(headers, data) {
-    const $ = cheerio
-      .load(data);
+    const $ = parse(data);
     return ({
-      token: normalize($('input'))
+      token: $.querySelectorAll('input')
       .reduce(
         (token, element) => {
           const {
             name,
             value,
-          } = (element.attribs || {});
+          } = (element.attributes || {});
           return token || ((name === '_token') && value);
         },
         null,
@@ -178,14 +188,8 @@ class Crawler {
             });
           })
           .then(({ headers, data }) => {
-            const $ = cheerio
-              .load(data);
-            const result = parseBoxes(
-              $,
-              normalize(
-                $('.lf-box'),
-              ),
-            );
+            const $ = parse(data);
+            const result = scrape($);
             return Promise.resolve(
               result,
             );
@@ -194,4 +198,4 @@ class Crawler {
   }
 }
 
-module.exports = Crawler;
+module.exports = Crawler
