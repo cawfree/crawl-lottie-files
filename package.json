@@ -8,12 +8,14 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "start": "babel index.js -o out.js; node ./out.js; rm -rf ./out.js"
+    "start": "babel index.js -o out.js; node ./out.js; rm -rf ./out.js",
+    "minify": "babel-minify ./index.js -o ./dist/crawl-lottie-files.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.0.0",
     "@babel/core": "^7.0.0",
-    "@babel/preset-env": "^7.3.4"
+    "@babel/preset-env": "^7.3.4",
+    "babel-minify": "^0.5.0"
   },
   "dependencies": {
     "axios": "^0.18.0",

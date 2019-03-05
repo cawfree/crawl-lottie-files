@@ -1,29 +1,11 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-//// XXX: Coerce cheerio towards standard
-////      array conventions.
-const normalize = (selection) => {
-  const arr = [];
-  selection.each(
-    (index, element) => arr.push(element),
-  );
-  return arr;
-};
-
-export const lottieUrl = 'https://lottiefiles.com';
-
-export const queryModes = ({
-  popular: {},
-  featured: {},
-  recent: {
-    paging: true,
-  },
-  search: {
-    paging: true,
-    method: 'post',
-  },
-});
+const normalize = require('./normalize');
+const {
+  lottieFilesUrl,
+  queryModes,
+} = require('./config.json');
 
 const parseAnchors = ($, anchors) => {
   return anchors
@@ -41,12 +23,41 @@ const parseAnchors = ($, anchors) => {
               )[0]
                 .attribs,
           });
+        } else if (index === 1) {
+          const authorImage = anchor.children[0].attribs.src;
+          return ({
+            ...obj,
+            authorImage,
+          });
+        } else if (index === 2) {
+         const author = anchor
+           .children[0]
+             .children[0]
+             .data;
+         return ({
+            ...obj,
+            author,
+          });
         }
         return obj;
       },
       {},
     );
 };
+
+const toFriendlyResult = ({ title, speed, bg, href, path, author, authorImage }) => ({
+  title,
+  url: href,
+  anim: {
+    uri: path,
+    speed,
+    backgroundColor: bg,
+  },
+  author: {
+    name: author,
+    image: authorImage,
+  },
+});
 
 const parseBoxes = ($, boxes) => {
   return boxes.reduce(
@@ -62,14 +73,15 @@ const parseBoxes = ($, boxes) => {
       ]);
     },
     [],
-  );
+  )
+  .map(toFriendlyResult);
 };
 
 class Crawler {
   authenticate() {
     return axios({
       method: 'get',
-      url: `${lottieUrl}`,
+      url: `${lottieFilesUrl}`,
     })
       .then(({ headers, data }) => this.__extractSession(
         headers,
@@ -78,7 +90,8 @@ class Crawler {
       .then(({ token, cookies }) => {
         this.__setToken(token);
         this.__setCookies(cookies);
-      });
+      })
+      .then(() => this);
   }
   __extractSession(headers, data) {
     const $ = cheerio
@@ -115,7 +128,7 @@ class Crawler {
     });
   }
   __constructRequestUrl(mode, paging, page, query) {
-    return `${lottieUrl}/${mode}${!paging ? '' : `?page=${page || 1}`}${mode === 'search' && query ? `&query=${query}` : ''}`;
+    return `${lottieFilesUrl}/${mode}${!paging ? '' : `?page=${page || 1}`}${mode === 'search' && query ? `&query=${query}` : ''}`;
   }
   crawl(
     mode = 'recent',
@@ -173,7 +186,6 @@ class Crawler {
                 $('.lf-box'),
               ),
             );
-            console.log(result);
             return Promise.resolve(
               result,
             );
@@ -182,26 +194,4 @@ class Crawler {
   }
 }
 
-const c = new Crawler();
-
-c.authenticate()
-  .then(() => c.crawl(
-    'search',
-    {
-      query: 'hello',
-      page: 1,
-    },
-  ))
-//  .then(() => {
-//    console.log('now number 2...');
-//    return new Promise(resolve => setTimeout(resolve, 5000));
-//  })
-//  .then(() => c.crawl(
-//    'recent',
-//    {
-//      query: 'hello',
-//      page: 2,
-//    },
-//  ));
-
-export default Crawler;
+module.exports = Crawler;
