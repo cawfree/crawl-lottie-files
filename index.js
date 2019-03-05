@@ -34,7 +34,6 @@ export const QUERY_MODES = ({
   },
 });
 
-
 const parseAnchors = ($, anchors) => {
   return anchors
     .reduce(
@@ -75,106 +74,6 @@ const parseBoxes = ($, boxes) => {
   );
 };
 
-const auth = () => axios({
-  method: 'get',
-  url: `${URL}`,
-})
-  .then(({ headers, data }) => {
-    const $ = cheerio
-      .load(data);
-    const _token  = normalize($('input'))
-      .reduce(
-        (token, element) => {
-          const {
-            name,
-            value,
-            _token,
-          } = (element.attribs || {});
-          return token || ((name === '_token') && value);
-          console.log(JSON.stringify(element.attribs));
-          return token || _token;
-        },
-        null,
-      );
-    console.log(_token);
-    const cookies = headers['set-cookie'];
-    console.log(cookies);
-    return ({
-      _token,
-      cookies,
-    });
-  });
-
-export const crawl = (
-  mode = 'recent', // recent, search, popular, featured
-  options = {},
-) => Promise.resolve()
-  .then(() => auth())
-  .then(({ _token, cookies }) => {
-    if (Object.keys(QUERY_MODES).indexOf(mode) < 0) {
-       return Promise.reject(
-        new Error(
-          `Unrecognized query mode! Please select one of ${QUERY_MODES}.`,
-        ),
-      );
-    }
-    const {
-      pagingDisabled,
-      method,
-      data,
-    } = QUERY_MODES[mode];
-    return axios({
-      method: method || 'get',
-      url: `${URL}/${mode}${pagingDisabled ? '' : `?page=${options.page || 1}`}${options.query ? `&query=${options.query}` : ''}`,
-      data: ({
-        _token,
-        ...({
-          _token,
-          ...((!!data && data(options))) || {},
-        }),
-      }),
-      headers: {
-        'content-uype': 'application/x-www-form-urlencoded',
-        'user-agent': 'Mozilla/5.0 (X11; CrOS x86_64 11316.148.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.117 Safari/537.36',
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-        'accept-encoding': 'gzip, deflate, br',
-        'accept-language': 'en-GB,en;q=0.9,en-US;q=0.8,fr;q=0.7',
-        'dnt': 1,
-        'origin': 'https://lottiefiles.com',
-        //'referer': 'https://lottiefiles.com/search',
-        'upgrade-insecure-requests': 1,
-        'cache-control': 'max-age=0',
-        //'content-length': 59,
-        'cookie': cookies.reduce(
-          (str, cookie) => {
-            return `${str}${cookie};`;
-          },
-          '',
-        ),
-      },
-      withCredentials: true,
-    })
-      .then(({ data }) => {
-        const $ = cheerio
-          .load(data);
-        const result = parseBoxes(
-          $,
-          normalize(
-            $('.lf-box'),
-          ),
-        );
-        console.log(result);
-      });
-  });
-
-crawl(
-  'search',
-  {
-    query: 'loading',
-    page: 2,
-  },
-);
-
 //// XXX: Coerce cheerio towards standard
 ////      array conventions.
 const normalize = (selection) => {
@@ -184,3 +83,145 @@ const normalize = (selection) => {
   );
   return arr;
 };
+
+class Crawler {
+  authenticate() {
+    return axios({
+      method: 'get',
+      url: `${URL}`,
+    })
+      .then(({ headers, data }) => this.__extractSession(
+        headers,
+        data,
+      ))
+      .then(({ token, cookies }) => {
+        this.__setToken(token);
+        this.__setCookies(cookies);
+      });
+  }
+  __extractSession(headers, data) {
+    const $ = cheerio
+      .load(data);
+    return ({
+      token: normalize($('input'))
+      .reduce(
+        (token, element) => {
+          const {
+            name,
+            value,
+          } = (element.attribs || {});
+          return token || ((name === '_token') && value);
+        },
+        null,
+      ),
+      cookies: headers['set-cookie'].reduce(
+        (str, cookie) => {
+          return `${str}${cookie};`;
+        },
+        '',
+      ),
+    });
+  }
+  __setToken(token) {
+    this.token = token;
+  }
+  __setCookies(cookies) {
+    this.cookies = cookies;
+  }
+  __constructRequestHeaders(cookies) {
+    return ({
+      'content-uype': 'application/x-www-form-urlencoded',
+      'user-agent': 'Mozilla/5.0 (X11; CrOS x86_64 11316.148.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.117 Safari/537.36',
+      'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+      'accept-encoding': 'gzip, deflate, br',
+      'accept-language': 'en-GB,en;q=0.9,en-US;q=0.8,fr;q=0.7',
+      'dnt': 1,
+      'origin': 'https://lottiefiles.com',
+      'upgrade-insecure-requests': 1,
+      'cache-control': 'max-age=0',
+      'cookie': cookies,
+    });
+  }
+  crawl(
+    mode = 'recent',
+    options = {},
+  ) {
+    return Promise.resolve()
+      .then(() => {
+        if (Object.keys(QUERY_MODES).indexOf(mode) < 0) {
+           return Promise.reject(
+            new Error(
+              `Unrecognized query mode! Please select one of ${QUERY_MODES}.`,
+            ),
+          );
+        }
+        const {
+          pagingDisabled,
+          method,
+          data,
+        } = QUERY_MODES[mode];
+        return axios({
+          method: method || 'get',
+          url: `${URL}/${mode}${pagingDisabled ? '' : `?page=${options.page || 1}`}${mode === 'search' && options.query ? `&query=${options.query}` : ''}`,
+          data: ({
+            _token: this.token,
+            ...({
+              ...((!!data && data(options))) || {},
+            }),
+          }),
+          headers: this.__constructRequestHeaders(
+            this.cookies,
+          ),
+          withCredentials: true,
+        })
+          .then(({ headers, data }) => {
+            const {
+              cookies,
+              token,
+            } = this.__extractSession(
+              headers,
+              data,
+            );
+            console.log('on result got cookies as '+cookies);
+            console.log('on result got token as '+token);
+            return ({
+              headers,
+              data,
+            });
+          })
+          .then(({ headers, data }) => {
+            const $ = cheerio
+              .load(data);
+            const result = parseBoxes(
+              $,
+              normalize(
+                $('.lf-box'),
+              ),
+            );
+            console.log(result);
+          });
+      });
+  }
+}
+
+const c = new Crawler();
+
+c.authenticate()
+  .then(() => c.crawl(
+    'search',
+    {
+      query: 'hello',
+      page: 1,
+    },
+  ))
+  .then(() => {
+    console.log('now number 2...');
+    return new Promise(resolve => setTimeout(resolve, 5000));
+  })
+  .then(() => c.crawl(
+    'search',
+    {
+      query: 'hello',
+      page: 2,
+    },
+  ))
