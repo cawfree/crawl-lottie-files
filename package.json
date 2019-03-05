@@ -11,7 +11,12 @@
     "start": "babel index.js -o out.js; node ./out.js; rm -rf ./out.js"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-es2017": "^6.24.1"
+    "@babel/cli": "^7.0.0",
+    "@babel/core": "^7.0.0",
+    "@babel/preset-env": "^7.3.4"
+  },
+  "dependencies": {
+    "axios": "^0.18.0",
+    "cheerio": "^1.0.0-rc.2"
   }
 }
