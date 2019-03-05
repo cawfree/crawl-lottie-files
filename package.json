@@ -1,0 +1,17 @@
+{
+  "name": "crawl-lottie-files",
+  "version": "1.0.0",
+  "description": "An API-style interface to the beautiful Lottie Animations served by lottiefiles.com.",
+  "main": "index.js",
+  "repository": "https://github.com/Cawfree/crawl-lottie-files",
+  "author": "cawfree <cawfree@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "start": "babel index.js -o out.js; node ./out.js; rm -rf ./out.js"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2017": "^6.24.1"
+  }
+}
