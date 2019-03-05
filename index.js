@@ -1,36 +1,27 @@
-// TODO: Remove this; do not be opinionated about the interface structure.
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-// TODO: As a prop?
-export const URL = 'https://lottiefiles.com';
-export const BOXES_PER_PAGE = 16;
+//// XXX: Coerce cheerio towards standard
+////      array conventions.
+const normalize = (selection) => {
+  const arr = [];
+  selection.each(
+    (index, element) => arr.push(element),
+  );
+  return arr;
+};
 
-export const QUERY_MODES = ({
-  popular: {
-    pagingDisabled: true,
-  },
-  featured: {
-    pagingDisabled: true,
-  },
+export const lottieUrl = 'https://lottiefiles.com';
+
+export const queryModes = ({
+  popular: {},
+  featured: {},
   recent: {
-
+    paging: true,
   },
   search: {
+    paging: true,
     method: 'post',
-    data(options) {
-      const {
-        query,
-      } = options;
-      if (!query) {
-        throw new Error(
-          'It is illegal to search without specifying a query!',
-        );
-      }
-      return ({
-        query,
-      });
-    },
   },
 });
 
@@ -74,21 +65,11 @@ const parseBoxes = ($, boxes) => {
   );
 };
 
-//// XXX: Coerce cheerio towards standard
-////      array conventions.
-const normalize = (selection) => {
-  const arr = [];
-  selection.each(
-    (index, element) => arr.push(element),
-  );
-  return arr;
-};
-
 class Crawler {
   authenticate() {
     return axios({
       method: 'get',
-      url: `${URL}`,
+      url: `${lottieUrl}`,
     })
       .then(({ headers, data }) => this.__extractSession(
         headers,
@@ -130,17 +111,11 @@ class Crawler {
   }
   __constructRequestHeaders(cookies) {
     return ({
-      'content-uype': 'application/x-www-form-urlencoded',
-      'user-agent': 'Mozilla/5.0 (X11; CrOS x86_64 11316.148.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.117 Safari/537.36',
-      'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-      'accept-encoding': 'gzip, deflate, br',
-      'accept-language': 'en-GB,en;q=0.9,en-US;q=0.8,fr;q=0.7',
-      'dnt': 1,
-      'origin': 'https://lottiefiles.com',
-      'upgrade-insecure-requests': 1,
-      'cache-control': 'max-age=0',
-      'cookie': cookies,
+      cookie: cookies,
     });
+  }
+  __constructRequestUrl(mode, paging, page, query) {
+    return `${lottieUrl}/${mode}${!paging ? '' : `?page=${page || 1}`}${mode === 'search' && query ? `&query=${query}` : ''}`;
   }
   crawl(
     mode = 'recent',
@@ -148,26 +123,28 @@ class Crawler {
   ) {
     return Promise.resolve()
       .then(() => {
-        if (Object.keys(QUERY_MODES).indexOf(mode) < 0) {
+        if (Object.keys(queryModes).indexOf(mode) < 0) {
            return Promise.reject(
             new Error(
-              `Unrecognized query mode! Please select one of ${QUERY_MODES}.`,
+              `Unrecognized query mode! Please select one of ${queryModes}.`,
             ),
           );
         }
         const {
-          pagingDisabled,
+          paging,
           method,
-          data,
-        } = QUERY_MODES[mode];
+        } = queryModes[mode];
         return axios({
           method: method || 'get',
-          url: `${URL}/${mode}${pagingDisabled ? '' : `?page=${options.page || 1}`}${mode === 'search' && options.query ? `&query=${options.query}` : ''}`,
+          url: this.__constructRequestUrl(
+            mode,
+            paging,
+            options.page,
+            options.query,
+          ),
           data: ({
             _token: this.token,
-            ...({
-              ...((!!data && data(options))) || {},
-            }),
+            query: options.query,
           }),
           headers: this.__constructRequestHeaders(
             this.cookies,
@@ -182,8 +159,6 @@ class Crawler {
               headers,
               data,
             );
-            console.log('on result got cookies as '+cookies);
-            console.log('on result got token as '+token);
             return ({
               headers,
               data,
@@ -199,6 +174,9 @@ class Crawler {
               ),
             );
             console.log(result);
+            return Promise.resolve(
+              result,
+            );
           });
       });
   }
@@ -214,14 +192,16 @@ c.authenticate()
       page: 1,
     },
   ))
-  .then(() => {
-    console.log('now number 2...');
-    return new Promise(resolve => setTimeout(resolve, 5000));
-  })
-  .then(() => c.crawl(
-    'search',
-    {
-      query: 'hello',
-      page: 2,
-    },
-  ))
+//  .then(() => {
+//    console.log('now number 2...');
+//    return new Promise(resolve => setTimeout(resolve, 5000));
+//  })
+//  .then(() => c.crawl(
+//    'recent',
+//    {
+//      query: 'hello',
+//      page: 2,
+//    },
+//  ));
+
+export default Crawler;
