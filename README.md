@@ -22,7 +22,7 @@ import LottieCrawler from 'crawl-lottie-files';
 new LottieCrawler()
   .authenticate()
   .then((crawler) => crawler.crawl(
-    'recent',
+    'featured',
   ))
   .then((featuredAnimations) => {
     // ...
@@ -96,11 +96,11 @@ LottieFiles is an _awesome_ utility that benefits everybody, so we should treat 
 
 You **must not**:
   - Misrepresent the host of the files.
-  - Query at speeds which exeed a manual browsing session.
+  - Query at speeds which exceed a manual browsing session.
 
 You **must**:
-  - Do your best to promote Lottie as much as you can!
   - Ensure the artists are credited.
+  - Do your best to promote Lottie as much as you can!
 
 ## 🎁 Credits
 `crawl-lottie-files` was made possible by [`axios`](https://github.com/axios/axios) and [`cheerio`](https://github.com/cheeriojs/cheerio). An extra special thank you to the [Lottie Animations Team](https://airbnb.io/lottie/) at [AirBnB](https://www.airbnb.co.uk) for their revolutionary and open approach towards enriching user experience.
