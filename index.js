@@ -34,15 +34,6 @@ export const QUERY_MODES = ({
   },
 });
 
-// XXX: Coerce cheerio towards standard
-//      array conventions.
-const normalize = (selection) => {
-  const arr = [];
-  selection.each(
-    (index, element) => arr.push(element),
-  );
-  return arr;
-};
 
 const parseAnchors = ($, anchors) => {
   return anchors
@@ -91,7 +82,6 @@ const auth = () => axios({
   .then(({ headers, data }) => {
     const $ = cheerio
       .load(data);
-    console.log(headers);
     const _token  = normalize($('input'))
       .reduce(
         (token, element) => {
@@ -115,12 +105,9 @@ const auth = () => axios({
     });
   });
 
-//auth();
-
 export const crawl = (
-  mode, // recent, search, popular, featured
-  page, // which page of results to return 
-  options,
+  mode = 'recent', // recent, search, popular, featured
+  options = {},
 ) => Promise.resolve()
   .then(() => auth())
   .then(({ _token, cookies }) => {
@@ -136,19 +123,15 @@ export const crawl = (
       method,
       data,
     } = QUERY_MODES[mode];
-    const resolvedOptions = (options || {});
-    const requestUrl = `${URL}/${mode}${pagingDisabled ? '' : `?page=${page || 1}`}`;
-    const requestMethod = method || 'get';
-    const requestData = ({
-      _token,
-      ...((!!data && data(resolvedOptions))) || {},
-    });
     return axios({
-      method: requestMethod,
-      url: requestUrl,
+      method: method || 'get',
+      url: `${URL}/${mode}${pagingDisabled ? '' : `?page=${options.page || 1}`}${options.query ? `&query=${options.query}` : ''}`,
       data: ({
         _token,
-        ...requestData,
+        ...({
+          _token,
+          ...((!!data && data(options))) || {},
+        }),
       }),
       headers: {
         'content-uype': 'application/x-www-form-urlencoded',
@@ -158,10 +141,10 @@ export const crawl = (
         'accept-language': 'en-GB,en;q=0.9,en-US;q=0.8,fr;q=0.7',
         'dnt': 1,
         'origin': 'https://lottiefiles.com',
-        'referer': 'https://lottiefiles.com/search',
+        //'referer': 'https://lottiefiles.com/search',
         'upgrade-insecure-requests': 1,
         'cache-control': 'max-age=0',
-        'content-length': 59,
+        //'content-length': 59,
         'cookie': cookies.reduce(
           (str, cookie) => {
             return `${str}${cookie};`;
@@ -186,8 +169,18 @@ export const crawl = (
 
 crawl(
   'search',
-  null,
   {
-    query: 'hello',
+    query: 'loading',
+    page: 2,
   },
 );
+
+//// XXX: Coerce cheerio towards standard
+////      array conventions.
+const normalize = (selection) => {
+  const arr = [];
+  selection.each(
+    (index, element) => arr.push(element),
+  );
+  return arr;
+};
