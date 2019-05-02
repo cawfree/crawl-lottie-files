@@ -1,7 +1,9 @@
 {
   "lottieFilesUrl": "https://lottiefiles.com",
   "queryModes": {
-    "popular": {},
+    "popular": {
+      "paging": true
+    },
     "featured": {},
     "recent": {
       "paging": true

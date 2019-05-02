@@ -1,6 +1,6 @@
 {
   "name": "crawl-lottie-files",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "An API-style interface to the beautiful Lottie Animations served by lottiefiles.com.",
   "main": "index.js",
   "repository": "https://github.com/Cawfree/crawl-lottie-files",
